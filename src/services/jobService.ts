@@ -1,37 +1,4 @@
-import type { Job, Profile, JobRating, GenerateContentResponse } from '../types';
-
-const jobSchema = {
-  type: "OBJECT",
-  properties: {
-    title: { type: "STRING", description: "The job title. Be concise." },
-    company: { type: "STRING", description: "The name of the company hiring." },
-    location: { type: "STRING", description: "The job location, e.g., 'Remote' or 'Tokyo, Japan'." },
-    url: { type: "STRING", description: "The direct URL to apply or view the job. If not present, use a Google search URL for the company's career page." },
-    tags: {
-      type: "ARRAY",
-      items: { type: "STRING" },
-      description: "A list of 3-5 relevant skills or keywords, e.g., 'React', 'TypeScript', 'Localization'."
-    },
-    description: {
-      type: "STRING",
-      description: "A brief, 2-3 sentence summary of the job role and responsibilities. Keep it in plain text."
-    },
-    remote: {
-      type: "BOOLEAN",
-      description: "True if the job is remote, false otherwise."
-    },
-  },
-  required: ['title', 'company', 'location', 'description', 'remote', 'tags', 'url'],
-};
-
-const ratingSchema = {
-  type: "OBJECT",
-  properties: {
-    rating: { type: "INTEGER", description: "A star rating from 1 (poor fit) to 5 (perfect fit)." },
-    reasoning: { type: "STRING", description: "A concise, 2-4 sentence explanation for the rating, using emojis to make it engaging." }
-  },
-  required: ['rating', 'reasoning']
-};
+import type { Job, Profile, JobRating } from '../types';
 
 async function callApi<T>(action: string, payload: any): Promise<T> {
   const response = await fetch('/api/gemini', {
@@ -42,93 +9,56 @@ async function callApi<T>(action: string, payload: any): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-    // Use the `details` field from our improved proxy for a better error message
     throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
   }
 
   return response.json();
 }
 
-const parseAndCleanResponse = <T,>(response: GenerateContentResponse): T => {
-    if (typeof response.text !== 'string' || response.text.trim() === '') {
-        console.error("Invalid or empty text response from the API proxy:", response);
-        throw new Error("The AI returned an empty or invalid response. Please try again.");
+const parseAndCleanJson = <T,>(text: string): T => {
+    if (typeof text !== 'string' || text.trim() === '') {
+        throw new Error("The AI returned empty text. Please try again.");
     }
     try {
-        const jsonStr = response.text.trim().replace(/^```json\s*|```$/g, '');
+        const jsonStr = text.trim().replace(/^```json\s*|```$/g, '');
         return JSON.parse(jsonStr);
     } catch (error) {
-        console.error("Error parsing Gemini JSON from proxy:", error, { text: response.text });
+        console.error("Error parsing Gemini JSON from proxy:", error, { text });
         throw new Error("Could not understand the AI's response.");
     }
 };
 
 export const jobService = {
-  parseJobFromText: async (text: string): Promise<Partial<Job>> => {
-    const prompt = `You are an expert HR assistant. Extract structured information from the following job description text. Return ONLY a single JSON object that strictly adheres to the provided schema. Do not include any other text or explanations.\n\nJob Description:\n---\n${text}\n---`;
-    const payload = {
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json", responseSchema: jobSchema },
-    };
-    const response = await callApi<GenerateContentResponse>('parseJobFromText', payload);
-    return parseAndCleanResponse<Partial<Job>>(response);
-  },
+  createQuestCardFromText: async (text: string): Promise<Partial<Job>> => {
+      const payload = { text };
+      const response = await callApi<{ jobData: string; imageBytes: string }>('parseAndGenerate', payload);
 
-  parseJobFromImage: async (base64ImageData: string, mimeType: string): Promise<Partial<Job>> => {
-    const prompt = `You are an expert HR assistant with OCR. Extract structured info from the job posting screenshot. Return ONLY a single JSON object adhering to the schema. If a URL isn't visible, create a Google search URL for "[Company Name] careers".`;
-    const imagePart = { inlineData: { data: base64ImageData, mimeType } };
-    const payload = {
-      model: "gemini-2.5-flash",
-      contents: { parts: [{ text: prompt }, imagePart] },
-      config: { responseMimeType: "application/json", responseSchema: jobSchema },
-    };
-    const response = await callApi<GenerateContentResponse>('parseJobFromImage', payload);
-    return parseAndCleanResponse<Partial<Job>>(response);
-  },
-  
-  generateJobImage: async (job: Partial<Job>): Promise<string> => {
-    const prompt = `
-      **Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card. The art should be iconic, clean, and visually appealing.
+      if (!response.jobData || !response.imageBytes) {
+          throw new Error("The AI response was incomplete.");
+      }
 
-      **Art Style:**
-      - **Inspiration:** Heavily inspired by the iconic, clean, and character-focused style of early Pokémon TCG artists like Ken Sugimori.
-      - **Technique:** Cel-shaded, with clean lines and simple, effective coloring.
-      - **Focus:** The artwork MUST feature a single, clear, central subject (a character, creature, or symbolic object) that metaphorically represents the job.
-
-      **Subject Matter:**
-      - **Job Title:** "${job.title}"
-      - **Job Description:** "${job.description}"
-      - **Concept:** Generate a creative, metaphorical character. For example, for "Network Engineer", a futuristic cybernetic courier with glowing data packets. For "Japanese Tutor", a wise, scholarly kitsune (fox spirit).
-
-      **Background:**
-      - The background MUST be a complete scene or environment. It should be MINIMALISTIC but fully rendered. Use simple shapes, a soft gradient, or abstract patterns.
-      - **DO NOT** use a plain white or empty background. The subject must exist in a space.
-
-      **CRITICAL INSTRUCTIONS (MANDATORY):**
-      1.  **NO TEXT:** The final image MUST NOT contain any words, letters, numbers, or symbols of any kind. It must be a pure illustration.
-      2.  **NO BORDERS OR FRAMES:** Do not draw a card border, frame, or any UI elements. The output must be the full-bleed artwork only.
-      3.  **SINGLE SUBJECT:** Focus on one compelling character or creature. Avoid overly busy scenes.
-    `;
-    
-    const payload = { prompt };
-    
-    const response = await callApi<{ imageBytes: string }>('generateJobImage', payload);
-    
-    if (response.imageBytes) {
-      return `data:image/png;base64,${response.imageBytes}`;
-    }
-    throw new Error("No image was generated.");
+      const jobDetails = parseAndCleanJson<Partial<Job>>(response.jobData);
+      const imageUrl = `data:image/png;base64,${response.imageBytes}`;
+      
+      return { ...jobDetails, imageUrl, source: 'Manual Text' };
   },
 
   rateJobFit: async (jobDescription: string, profile: Profile): Promise<JobRating> => {
+    const ratingSchema = {
+        type: "OBJECT",
+        properties: {
+          rating: { type: "INTEGER" },
+          reasoning: { type: "STRING" }
+        },
+        required: ['rating', 'reasoning']
+    };
     const prompt = `You are a helpful and encouraging career coach AI. Analyze a job description and rate how well it fits a user's profile on a 1 to 5 star scale.\n\n**User Profile Preferences:**\n- **Remote Only:** ${profile.preferences.remoteOnly}\n- **Keywords:** ${profile.preferences.keywords.join(', ')}\n- **Preferred Roles:** ${profile.preferences.preferredRoles.join(', ')}\n\n**Job Description to Analyze:**\n---\n${jobDescription}\n---\n\n**Your Task:** Based on the user's preferences, analyze the job description and return ONLY a single JSON object that strictly adheres to the provided schema. Your reasoning should be positive and encouraging, even if the fit is low. Use emojis to make it engaging!`;
     const payload = {
       model: "gemini-2.5-flash",
       contents: prompt,
       config: { responseMimeType: "application/json", responseSchema: ratingSchema },
     };
-    const response = await callApi<GenerateContentResponse>('rateJobFit', payload);
-    return parseAndCleanResponse<JobRating>(response);
+    const response = await callApi<{ text: string }>('rateJobFit', payload);
+    return parseAndCleanJson<JobRating>(response.text);
   }
 };

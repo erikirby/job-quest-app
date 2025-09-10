@@ -1,5 +1,29 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, Type } from "@google/genai";
+
+const jobSchema = {
+  type: Type.OBJECT,
+  properties: {
+    title: { type: Type.STRING },
+    company: { type: Type.STRING },
+    location: { type: Type.STRING },
+    url: { type: Type.STRING },
+    tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+    description: { type: Type.STRING },
+    remote: { type: Type.BOOLEAN },
+  },
+  required: ['title', 'company', 'location', 'description', 'remote', 'tags', 'url'],
+};
+
+const ratingSchema = {
+  type: Type.OBJECT,
+  properties: {
+    rating: { type: Type.INTEGER },
+    reasoning: { type: Type.STRING }
+  },
+  required: ['rating', 'reasoning']
+};
+
 
 export default async function handler(
   request: VercelRequest,
@@ -20,40 +44,54 @@ export default async function handler(
 
   try {
     switch (action) {
-      case 'parseJobFromText':
-      case 'parseJobFromImage':
       case 'rateJobFit': {
         const result = await ai.models.generateContent(payload);
         return response.status(200).json({ text: result.text });
       }
-      case 'generateJobImage': {
-        const { prompt } = payload;
-        if (!prompt) {
-          return response.status(400).json({ error: 'Prompt is required for image generation' });
-        }
+      
+      case 'parseAndGenerate': {
+        const { text } = payload;
         
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image-preview',
-          contents: { parts: [{ text: prompt }] },
-          config: {
-            responseModalities: [Modality.IMAGE],
-          },
-        });
+        const parsePrompt = `You are an expert HR assistant. Extract structured information from the following job description text. Return ONLY a single JSON object that strictly adheres to the provided schema. Do not include any other text or explanations.\n\nJob Description:\n---\n${text}\n---`;
+        
+        const imageGenPrompt = `
+          **Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card.
+          **Art Style:** Inspired by the iconic, clean, character-focused style of artists like Ken Sugimori for Pokémon TCG. Cel-shaded, with clean lines and simple coloring.
+          **Focus:** The artwork MUST feature a single, clear, central subject (a character or creature) that metaphorically represents the job described in the text.
+          **Background:** The background MUST be a complete, but MINIMALISTIC, scene or environment. DO NOT use a plain white or empty background.
+          **CRITICAL INSTRUCTIONS (MANDATORY):**
+          1.  **NO TEXT:** The final image MUST NOT contain any words, letters, numbers, or symbols. It must be a pure illustration.
+          2.  **NO BORDERS OR FRAMES:** Do not draw a card border or any UI elements. The output must be the full-bleed artwork only.
+        `;
 
+        const result = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+                { parts: [{ text: parsePrompt }, { text: imageGenPrompt }] }
+            ],
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: jobSchema,
+                responseModalities: [Modality.IMAGE, Modality.TEXT],
+            },
+        });
+        
+        const jsonPart = result.candidates?.[0]?.content?.parts?.find(p => p.text);
         const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
 
-        if (!imagePart || !imagePart.inlineData) {
-            const blockReason = result.candidates?.[0]?.finishReason;
-            if (blockReason === 'SAFETY') {
-                 return response.status(400).json({ error: 'Image generation blocked for safety reasons.', details: 'Image generation blocked for safety reasons.' });
-            }
-            console.error("No image data in response:", JSON.stringify(result, null, 2));
-            return response.status(500).json({ error: 'No image data found in AI response', details: 'No image data found in AI response' });
+        if (!jsonPart?.text || !imagePart?.inlineData?.data) {
+             const blockReason = result.candidates?.[0]?.finishReason;
+             const reasonDetails = blockReason ? `Request blocked for safety reasons: ${blockReason}` : 'The AI response was missing required parts (JSON or Image).';
+             console.error("Multi-modal response missing parts:", JSON.stringify(result, null, 2));
+             return response.status(500).json({ error: 'Could not generate complete card data.', details: reasonDetails });
         }
         
-        const imageBytes = imagePart.inlineData.data;
-        return response.status(200).json({ imageBytes });
+        return response.status(200).json({
+            jobData: jsonPart.text,
+            imageBytes: imagePart.inlineData.data
+        });
       }
+
       default:
         return response.status(400).json({ error: 'Invalid action' });
     }

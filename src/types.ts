@@ -97,8 +97,3 @@ export interface ToastMessage {
   message: string;
   type: 'success' | 'info' | 'warning';
 }
-
-// Type for the simplified response from our API proxy
-export interface GenerateContentResponse {
-    text: string;
-}
