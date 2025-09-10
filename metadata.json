@@ -1,0 +1,5 @@
+{
+  "name": "Job Quest",
+  "description": "A gamified, RPG-style job hunting tool that makes applying for jobs feel like playing a game. Users gain XP, level up, earn badges, and complete daily missions.",
+  "requestFramePermissions": []
+}
