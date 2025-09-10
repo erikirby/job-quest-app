@@ -89,14 +89,13 @@ export const jobService = {
   
   generateJobImage: async (job: Partial<Job>): Promise<string> => {
     const prompt = `**Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card.\n**Art Style:** Inspired by the iconic, clean, character-focused style of early Pokémon TCG artists like Ken Sugimori. Cel-shaded, with clean lines and simple coloring. The artwork MUST feature a single, clear, central subject (a character, creature, or symbolic object) that metaphorically represents the job.\n**Subject Matter:**\n- **Job Title:** "${job.title}"\n- **Job Description:** "${job.description}"\n- **Concept:** Generate a creative, metaphorical character. For example, "Network Engineer": A futuristic cybernetic courier with glowing data packets. "Japanese Tutor": A wise, scholarly kitsune (fox spirit).\n- **Background:** MINIMALISTIC. Simple shapes or a soft gradient.\n**CRITICAL INSTRUCTIONS:**\n1.  **NO TEXT:** The image must not contain any words, letters, or numbers.\n2.  **NO BORDERS OR FRAMES:** Do not draw a card border. The output must be the full-bleed artwork only.\n3.  **SINGLE SUBJECT:** Focus on one compelling character or creature.`;
-    const payload = {
-      model: 'imagen-4.0-generate-001',
-      prompt,
-      config: { numberOfImages: 1, outputMimeType: 'image/jpeg', aspectRatio: '4:3' },
-    };
-    const response = await callApi<{ generatedImages: { imageBytes: string }[] }>('generateJobImage', payload);
-    if (response.generatedImages && response.generatedImages.length > 0) {
-      return `data:image/jpeg;base64,${response.generatedImages[0].imageBytes}`;
+    
+    const payload = { prompt };
+    
+    const response = await callApi<{ imageBytes: string }>('generateJobImage', payload);
+    
+    if (response.imageBytes) {
+      return `data:image/png;base64,${response.imageBytes}`;
     }
     throw new Error("No image was generated.");
   },
