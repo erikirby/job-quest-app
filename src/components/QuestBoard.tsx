@@ -30,7 +30,14 @@ const calculateRarity = (job: Partial<Job>, preferences: Profile['preferences'])
     return Math.min(5, score);
 };
 
-const QuestPreviewCard: React.FC<{ job: Partial<Job>; onSave: () => void; onSubmit: () => void; isLoading: boolean;}> = ({ job, onSave, onSubmit, isLoading }) => {
+const QuestPreviewCard: React.FC<{ 
+    job: Partial<Job>; 
+    onSave: () => void; 
+    onSubmit: () => void; 
+    onRegenerateImage: () => void;
+    isLoading: boolean;
+    isRegeneratingImage: boolean;
+}> = ({ job, onSave, onSubmit, onRegenerateImage, isLoading, isRegeneratingImage }) => {
     const cardType = job.type || 'colorless';
     const colors = POKEMON_CARD_TYPES[cardType] || POKEMON_CARD_TYPES.colorless;
 
@@ -51,14 +58,23 @@ const QuestPreviewCard: React.FC<{ job: Partial<Job>; onSave: () => void; onSubm
                     </div>
 
                     {/* Image Frame */}
-                    <div className={`my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
-                        {job.imageUrl ? (
+                    <div className={`relative my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
+                        {job.imageUrl && (
                             <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
-                        ) : (
-                            <div className="w-full h-auto aspect-[4/3] bg-slate-100 flex items-center justify-center rounded-sm">
-                                <p className="text-slate-400">No Image</p>
+                        )}
+                        {(isRegeneratingImage || !job.imageUrl) && (
+                            <div className="absolute inset-0 bg-slate-100/80 flex items-center justify-center rounded-sm">
+                                <div className="w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         )}
+                        <button 
+                            onClick={onRegenerateImage} 
+                            disabled={isLoading || isRegeneratingImage}
+                            className="absolute top-2 right-2 p-1.5 bg-white/50 rounded-full text-slate-600 hover:bg-white/80 hover:scale-110 transition-transform duration-200 disabled:opacity-50"
+                            aria-label="Regenerate Artwork"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4 4l16 16" /></svg>
+                        </button>
                     </div>
                     
                     {/* Body */}
@@ -107,6 +123,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
     const [previewJob, setPreviewJob] = useState<Partial<Job> | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState('Importing...');
+    const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleParse = async (method: 'text' | 'image', data: string | { base64: string; mime: string }) => {
@@ -146,6 +163,21 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
             setError(err.message || 'Failed to parse job details. Please try again.');
         } finally {
             setIsLoading(false);
+        }
+    };
+    
+    const handleRegenerateImage = async () => {
+        if (!previewJob) return;
+
+        setError(null);
+        setIsRegeneratingImage(true);
+        try {
+            const imageUrl = await jobService.generateJobImage(previewJob);
+            setPreviewJob(prev => prev ? { ...prev, imageUrl } : null);
+        } catch (err: any) {
+             setError(err.message || 'Failed to regenerate artwork. Please try again.');
+        } finally {
+            setIsRegeneratingImage(false);
         }
     };
     
@@ -275,7 +307,14 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
                     </div>
                 )}
                 
-                {previewJob && <QuestPreviewCard job={previewJob} onSave={() => handleAdd('save')} onSubmit={() => handleAdd('submit')} isLoading={isLoading} />}
+                {previewJob && <QuestPreviewCard 
+                    job={previewJob} 
+                    onSave={() => handleAdd('save')} 
+                    onSubmit={() => handleAdd('submit')} 
+                    onRegenerateImage={handleRegenerateImage}
+                    isLoading={isLoading} 
+                    isRegeneratingImage={isRegeneratingImage}
+                />}
             </Card>
         </div>
     );

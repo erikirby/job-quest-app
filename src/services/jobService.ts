@@ -88,7 +88,28 @@ export const jobService = {
   },
   
   generateJobImage: async (job: Partial<Job>): Promise<string> => {
-    const prompt = `**Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card.\n**Art Style:** Inspired by the iconic, clean, character-focused style of early Pokémon TCG artists like Ken Sugimori. Cel-shaded, with clean lines and simple coloring. The artwork MUST feature a single, clear, central subject (a character, creature, or symbolic object) that metaphorically represents the job.\n**Subject Matter:**\n- **Job Title:** "${job.title}"\n- **Job Description:** "${job.description}"\n- **Concept:** Generate a creative, metaphorical character. For example, "Network Engineer": A futuristic cybernetic courier with glowing data packets. "Japanese Tutor": A wise, scholarly kitsune (fox spirit).\n- **Background:** MINIMALISTIC. Simple shapes or a soft gradient.\n**CRITICAL INSTRUCTIONS:**\n1.  **NO TEXT:** The image must not contain any words, letters, or numbers.\n2.  **NO BORDERS OR FRAMES:** Do not draw a card border. The output must be the full-bleed artwork only.\n3.  **SINGLE SUBJECT:** Focus on one compelling character or creature.`;
+    const prompt = `
+      **Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card. The art should be iconic, clean, and visually appealing.
+
+      **Art Style:**
+      - **Inspiration:** Heavily inspired by the iconic, clean, and character-focused style of early Pokémon TCG artists like Ken Sugimori.
+      - **Technique:** Cel-shaded, with clean lines and simple, effective coloring.
+      - **Focus:** The artwork MUST feature a single, clear, central subject (a character, creature, or symbolic object) that metaphorically represents the job.
+
+      **Subject Matter:**
+      - **Job Title:** "${job.title}"
+      - **Job Description:** "${job.description}"
+      - **Concept:** Generate a creative, metaphorical character. For example, for "Network Engineer", a futuristic cybernetic courier with glowing data packets. For "Japanese Tutor", a wise, scholarly kitsune (fox spirit).
+
+      **Background:**
+      - The background MUST be a complete scene or environment. It should be MINIMALISTIC but fully rendered. Use simple shapes, a soft gradient, or abstract patterns.
+      - **DO NOT** use a plain white or empty background. The subject must exist in a space.
+
+      **CRITICAL INSTRUCTIONS (MANDATORY):**
+      1.  **NO TEXT:** The final image MUST NOT contain any words, letters, numbers, or symbols of any kind. It must be a pure illustration.
+      2.  **NO BORDERS OR FRAMES:** Do not draw a card border, frame, or any UI elements. The output must be the full-bleed artwork only.
+      3.  **SINGLE SUBJECT:** Focus on one compelling character or creature. Avoid overly busy scenes.
+    `;
     
     const payload = { prompt };
     
