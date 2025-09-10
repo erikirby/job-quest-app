@@ -3,7 +3,7 @@ import type { Job, Profile, JobRating } from '../types';
 import { jobService } from '../services/jobService';
 import Card from './ui/Card';
 import Button from './ui/Button';
-import { PORTALS, POKEMON_CARD_TYPES, ICONS, PRELOADED_IMAGES } from '../constants';
+import { PORTALS, POKEMON_CARD_TYPES, ICONS, CARD_EMOJIS } from '../constants';
 
 interface QuestBoardProps {
   profile: Profile;
@@ -55,9 +55,11 @@ const QuestPreviewCard: React.FC<{
                         </div>
                     </div>
 
-                    {/* Image Frame */}
-                    <div className={`relative my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
-                       <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
+                    {/* Emoji Visual */}
+                    <div className={`my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
+                       <div className={`w-full h-auto aspect-[4/3] ${colors.bg} flex items-center justify-center rounded-sm`}>
+                            <span className="text-7xl opacity-80" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{job.emoji}</span>
+                        </div>
                     </div>
                     
                     {/* Body */}
@@ -120,8 +122,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
             
             const cardData = await jobService.parseJobFromText(importText);
             
-            // Assign a random preloaded image - NO AI GENERATION
-            cardData.imageUrl = PRELOADED_IMAGES[Math.floor(Math.random() * PRELOADED_IMAGES.length)];
+            cardData.emoji = CARD_EMOJIS[Math.floor(Math.random() * CARD_EMOJIS.length)];
 
             cardData.rarity = calculateRarity(cardData, profile.preferences);
             const types = Object.keys(POKEMON_CARD_TYPES);

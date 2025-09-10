@@ -5,8 +5,8 @@ import { isToday, isYesterday, isSameDay, addDays, format } from 'date-fns';
 import { INITIAL_PROFILES, INITIAL_GAME_STATE, XP_VALUES, SUBMISSIONS_PER_LEVEL, BADGES, ICONS } from './constants';
 import useLocalStorage from './hooks/useLocalStorage';
 
-import Dashboard from './components/Dashboard';
 import QuestBoard from './components/QuestBoard';
+import Dashboard from './components/Dashboard';
 import QuestLog from './components/QuestLog';
 import DailyMissions from './components/DailyMissions';
 import BadgeGallery from './components/BadgeGallery';
@@ -15,7 +15,7 @@ import { ToastContainer } from './components/ui/Toast';
 import { ConfettiEffect, SparkleEffect } from './components/ui/Effects';
 
 const App: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<Tab>(TabEnum.Dashboard);
+    const [activeTab, setActiveTab] = useState<Tab>(TabEnum.QuestBoard);
     const [profiles, setProfiles] = useLocalStorage<Profile[]>('jobquest_profiles', INITIAL_PROFILES);
     const [activeProfileId, setActiveProfileId] = useLocalStorage<string>('jobquest_activeProfileId', 'erik');
     
@@ -23,10 +23,10 @@ const App: React.FC = () => {
     const [gameState, setGameState] = useLocalStorage<GameState>(`jobquest_gamestate_${activeProfileId}`, INITIAL_GAME_STATE);
     const [userJobs, setUserJobs] = useLocalStorage<Record<string, Job>>(`jobquest_jobs_${activeProfileId}`, {});
 
-    const [isLoading, setIsLoading] = useState(false);
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
     const [showConfetti, setShowConfetti] = useState(false);
     const [showSparkles, setShowSparkles] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [currentDate, setCurrentDate] = useState(format(new Date(), 'MMMM d, yyyy'));
 
     // Update date display once a day
@@ -151,25 +151,29 @@ const App: React.FC = () => {
 
     const handleAddJob = (jobData: Partial<Job>, action: 'save' | 'submit') => {
         const newJob: Job = {
-            id: crypto.randomUUID(),
-            title: 'Untitled Quest',
-            company: 'Unknown Company',
-            location: 'No Location',
-            url: '',
-            tags: [],
-            description: 'No description provided.',
-            remote: false,
-            source: 'Manual',
-            rarity: 1,
-            ...jobData,
+            id: `job-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            title: jobData.title || 'Untitled Quest',
+            company: jobData.company || 'Unknown Company',
+            location: jobData.location || 'Unknown Location',
+            url: jobData.url || '#',
+            tags: jobData.tags || [],
+            description: jobData.description || 'No description provided.',
+            remote: jobData.remote || false,
+            rarity: jobData.rarity || 1,
+            emoji: jobData.emoji,
+            type: jobData.type,
+            source: jobData.source,
         };
 
-        const updatedJobs = { ...userJobs, [newJob.id]: newJob };
-        setUserJobs(updatedJobs);
+        const newJobs = { ...userJobs, [newJob.id]: newJob };
+        setUserJobs(newJobs);
 
         if (action === 'save') {
-            setGameState(prev => ({...prev, savedJobs: [...prev.savedJobs, newJob.id] }));
-            addToast('Quest saved to your log!', 'success');
+            setGameState(prev => ({
+                ...prev,
+                savedJobs: [...prev.savedJobs, newJob.id],
+            }));
+            addToast('Quest saved successfully!', 'success');
         } else if (action === 'submit') {
             handleJobSubmit(newJob);
         }

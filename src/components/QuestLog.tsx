@@ -36,9 +36,11 @@ const QuestCard: React.FC<{ job: Job; onClick: () => void; }> = ({ job, onClick 
                         </div>
                     </div>
 
-                    {/* Image Frame */}
+                    {/* Emoji Visual */}
                     <div className={`my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
-                        <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
+                        <div className={`w-full h-auto aspect-[4/3] ${colors.bg} flex items-center justify-center rounded-sm`}>
+                            <span className="text-4xl opacity-80 group-hover:scale-110 transition-transform" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{job.emoji}</span>
+                        </div>
                     </div>
                     
                     {/* Body */}
@@ -127,7 +129,9 @@ const AppliedQuests: React.FC<Omit<QuestLogProps, 'onDeleteSavedJob' | 'onApplyT
                     <Card key={app.jobId} className="!p-0 overflow-hidden">
                         <div className="p-4 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                             <div className="flex items-center gap-4 md:col-span-2">
-                               <img src={job.imageUrl} className="w-16 h-12 object-cover rounded-md flex-shrink-0" alt="Job Artwork"/>
+                               <div className={`w-16 h-12 ${colors.bg} flex items-center justify-center rounded-md flex-shrink-0`}>
+                                    <span className="text-2xl">{job.emoji}</span>
+                                </div>
                                <div>
                                     <div className="flex items-center gap-2">
                                         <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white ${colors.bg} border-2 ${colors.border} flex-shrink-0`}>

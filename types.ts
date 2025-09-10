@@ -1,5 +1,8 @@
+// Fix: Removed self-import which caused declaration conflicts.
+
 export enum Tab {
   Dashboard = 'Dashboard',
+  // Fix: Add missing QuestBoard to the Tab enum.
   QuestBoard = 'Quest Board',
   QuestLog = 'Quest Log',
   DailyMissions = 'Daily Missions',
@@ -16,12 +19,13 @@ export interface Job {
   tags: string[];
   description: string;
   remote: boolean;
-  source: string; // e.g., 'Manual Text', 'Manual Image'
   rarity: number;
-  imageUrl?: string;
+  emoji?: string;
   type?: string; // e.g., 'fire', 'water', 'grass'
+  source?: string;
 }
 
+// Fix: Add JobRating type for AI-based job fit analysis.
 export interface JobRating {
   rating: number;
   reasoning: string;

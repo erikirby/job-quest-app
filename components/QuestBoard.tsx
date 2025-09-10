@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { Job, Profile, JobRating } from '../types';
 import { jobService } from '../services/jobService';
 import Card from './ui/Card';
 import Button from './ui/Button';
-import { PORTALS, POKEMON_CARD_TYPES, ICONS } from '../constants';
+import { PORTALS, POKEMON_CARD_TYPES, ICONS, CARD_EMOJIS } from '../constants';
 
 interface QuestBoardProps {
   profile: Profile;
@@ -50,15 +50,11 @@ const QuestPreviewCard: React.FC<{ job: Partial<Job>; onSave: () => void; onSubm
                         </div>
                     </div>
 
-                    {/* Image Frame */}
+                    {/* Emoji Visual */}
                     <div className={`my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
-                        {job.imageUrl ? (
-                            <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
-                        ) : (
-                            <div className="w-full h-auto aspect-[4/3] bg-slate-100 flex items-center justify-center rounded-sm">
-                                <p className="text-slate-400">No Image</p>
-                            </div>
-                        )}
+                       <div className={`w-full h-auto aspect-[4/3] ${colors.bg} flex items-center justify-center rounded-sm`}>
+                            <span className="text-7xl opacity-80" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{job.emoji}</span>
+                        </div>
                     </div>
                     
                     {/* Body */}
@@ -106,36 +102,23 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
     const [ratingResult, setRatingResult] = useState<JobRating | null>(null);
     const [previewJob, setPreviewJob] = useState<Partial<Job> | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [loadingMessage, setLoadingMessage] = useState('Importing...');
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [loadingMessage, setLoadingMessage] = useState('Parsing...');
 
-    const handleParse = async (method: 'text' | 'image', data: string | { base64: string; mime: string }) => {
+    const handleParseFromText = async (text: string) => {
         setError(null);
         setPreviewJob(null);
         setIsLoading(true);
+        setLoadingMessage("Parsing details...");
         
         try {
-            setLoadingMessage("Parsing details...");
-            let parsedData: Partial<Job>;
-            if (method === 'text' && typeof data === 'string') {
-                if (data.trim().length < 50) {
-                    throw new Error("Pasted text is too short. Please paste the full job description.");
-                }
-                parsedData = await jobService.parseJobFromText(data);
-                parsedData.source = 'Manual Text';
-            } else if (method === 'image' && typeof data === 'object') {
-                parsedData = await jobService.parseJobFromImage(data.base64, data.mime);
-                parsedData.source = 'Manual Image';
-            } else {
-                 throw new Error("Invalid import method or data.");
+            if (text.trim().length < 50) {
+                throw new Error("Pasted text is too short. Please paste the full job description.");
             }
-            
-            setLoadingMessage("Generating artwork...");
-            const imageUrl = await jobService.generateJobImage(parsedData);
-            parsedData.imageUrl = imageUrl;
+            const parsedData = await jobService.parseJobFromText(text);
+            parsedData.source = 'Manual Text';
             
             parsedData.rarity = calculateRarity(parsedData, profile.preferences);
-
+            parsedData.emoji = CARD_EMOJIS[Math.floor(Math.random() * CARD_EMOJIS.length)];
             const types = Object.keys(POKEMON_CARD_TYPES);
             parsedData.type = types[Math.floor(Math.random() * types.length)];
             
@@ -165,21 +148,6 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const base64 = (e.target?.result as string).split(',')[1];
-            if (base64) {
-                handleParse('image', { base64, mime: file.type });
-            }
-        };
-        reader.readAsDataURL(file);
-        event.target.value = ''; // Reset file input
     };
 
     const handleAdd = (action: 'save' | 'submit') => {
@@ -224,15 +192,10 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
                             className="w-full h-24 p-3 border border-white/30 bg-white/50 rounded-lg focus:ring-blue-400 focus:border-blue-400 transition"
                             disabled={isLoading}
                         />
-                        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Button onClick={() => handleParse('text', importText)} disabled={isLoading || importText.trim().length === 0} className="w-full sm:w-auto">
-                                {isLoading ? loadingMessage : 'From Text'}
+                        <div className="mt-4 flex flex-col items-center justify-center gap-4">
+                            <Button onClick={() => handleParseFromText(importText)} disabled={isLoading || importText.trim().length === 0} className="w-full sm:w-auto">
+                                {isLoading ? loadingMessage : 'Create Card from Text'}
                             </Button>
-                             <span className="text-slate-500 font-semibold">OR</span>
-                             <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={isLoading} className="w-full sm:w-auto">
-                                 {isLoading ? loadingMessage : 'From Screenshot'}
-                            </Button>
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
                         </div>
                     </div>
 
