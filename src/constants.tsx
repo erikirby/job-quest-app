@@ -19,6 +19,21 @@ export const ICONS = {
   WELLFOUND: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm0 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0 3c-3.866 0-7 3.134-7 7s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 3c2.209 0 4 1.791 4 4s-1.791 4-4 4-4-1.791-4-4 1.791-4 4-4z"/></svg>,
 };
 
+// --- PRELOADED IMAGES ---
+// The user should replace these with their own images in the /public/assets folder
+export const PRELOADED_IMAGES = [
+  '/assets/fantasy_1.png',
+  '/assets/fantasy_2.png',
+  '/assets/fantasy_3.png',
+  '/assets/fantasy_4.png',
+  '/assets/fantasy_5.png',
+  '/assets/fantasy_6.png',
+  '/assets/fantasy_7.png',
+  '/assets/fantasy_8.png',
+  '/assets/fantasy_9.png',
+  '/assets/fantasy_10.png',
+];
+
 // --- POKEMON TCG CARD "TYPES" ---
 const POKEMON_TYPE_ICON_CLASS = "w-7 h-7 p-1";
 export const POKEMON_CARD_TYPES: Record<string, { name: string; bg: string; border: string; text: string; body: string; rarity: string, icon: JSX.Element }> = {

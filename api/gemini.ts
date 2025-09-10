@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const jobSchema = {
   type: Type.OBJECT,
@@ -49,67 +49,20 @@ export default async function handler(
         return response.status(200).json({ text: result.text });
       }
       
-      case 'parseAndGenerate': {
-        const { text } = payload;
-        
-        const parsePrompt = `You are an expert HR assistant. Extract structured information from the following job description text. Return ONLY a single JSON object that strictly adheres to the provided schema. Do not include any other text or explanations.\n\nJob Description:\n---\n${text}\n---`;
-        
-        const imageGenPrompt = `
-          **Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card.
-          **Art Style:** Inspired by the iconic, clean, character-focused style of artists like Ken Sugimori for Pokémon TCG. Cel-shaded, with clean lines and simple coloring.
-          **Focus:** The artwork MUST feature a single, clear, central subject (a character or creature) that metaphorically represents the job described in the text.
-          **Background:** The background MUST be a complete, but MINIMALISTIC, scene or environment. DO NOT use a plain white or empty background.
-          **CRITICAL INSTRUCTIONS (MANDATORY):**
-          1.  **NO TEXT:** The final image MUST NOT contain any words, letters, numbers, or symbols. It must be a pure illustration.
-          2.  **NO BORDERS OR FRAMES:** Do not draw a card border or any UI elements. The output must be the full-bleed artwork only.
-        `;
+      case 'parseText': {
+         const { text } = payload;
+         const prompt = `You are an expert HR assistant. Extract structured information from the following job description text. Return ONLY a single JSON object that strictly adheres to the provided schema. Do not include any other text or explanations.\n\nJob Description:\n---\n${text}\n---`;
 
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview', // <-- CRITICAL FIX: Use the correct multi-modal model
-            contents: [
-                { parts: [{ text: parsePrompt }, { text: imageGenPrompt }] }
-            ],
+         const result = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: jobSchema,
-                responseModalities: [Modality.IMAGE, Modality.TEXT],
             },
-        });
-        
-        const jsonPart = result.candidates?.[0]?.content?.parts?.find(p => p.text);
-        const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+         });
 
-        if (!jsonPart?.text || !imagePart?.inlineData?.data) {
-             const blockReason = result.candidates?.[0]?.finishReason;
-             const reasonDetails = blockReason ? `Request blocked for safety reasons: ${blockReason}` : 'The AI response was missing required parts (JSON or Image).';
-             console.error("Multi-modal response missing parts:", JSON.stringify(result, null, 2));
-             return response.status(500).json({ error: 'Could not generate complete card data.', details: reasonDetails });
-        }
-        
-        return response.status(200).json({
-            jobData: jsonPart.text,
-            imageBytes: imagePart.inlineData.data
-        });
-      }
-
-      case 'generateRandomImage': {
-          const prompt = `A vibrant, high-quality illustration of a mythical creature in a dynamic pose, cel-shaded, simple but complete background, fantasy art style. CRITICAL: NO TEXT, NO BORDERS, NO UI.`;
-          
-          const result = await ai.models.generateContent({
-              model: 'gemini-2.5-flash-image-preview',
-              contents: [{ parts: [{ text: prompt }] }],
-              config: {
-                  responseModalities: [Modality.IMAGE],
-              },
-          });
-          
-          const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-          if (!imagePart?.inlineData?.data) {
-              console.error("Random image response missing data:", JSON.stringify(result, null, 2));
-              return response.status(500).json({ error: 'Could not generate random image.' });
-          }
-          
-          return response.status(200).json({ imageBytes: imagePart.inlineData.data });
+         return response.status(200).json({ text: result.text });
       }
 
       default:

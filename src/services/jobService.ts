@@ -29,26 +29,16 @@ const parseAndCleanJson = <T,>(text: string): T => {
 };
 
 export const jobService = {
-  createQuestCardFromText: async (text: string): Promise<Partial<Job>> => {
+  parseJobFromText: async (text: string): Promise<Partial<Job>> => {
       const payload = { text };
-      const response = await callApi<{ jobData: string; imageBytes: string }>('parseAndGenerate', payload);
+      const response = await callApi<{ text: string }>('parseText', payload);
 
-      if (!response.jobData || !response.imageBytes) {
+      if (!response.text) {
           throw new Error("The AI response was incomplete.");
       }
 
-      const jobDetails = parseAndCleanJson<Partial<Job>>(response.jobData);
-      const imageUrl = `data:image/png;base64,${response.imageBytes}`;
-      
-      return { ...jobDetails, imageUrl, source: 'Manual Text' };
-  },
-
-  generateRandomImage: async (): Promise<string> => {
-    const response = await callApi<{ imageBytes: string }>('generateRandomImage', {});
-    if (!response.imageBytes) {
-        throw new Error("The AI response for the random image was empty.");
-    }
-    return `data:image/png;base64,${response.imageBytes}`;
+      const jobDetails = parseAndCleanJson<Partial<Job>>(response.text);
+      return { ...jobDetails, source: 'Manual Text' };
   },
 
   rateJobFit: async (jobDescription: string, profile: Profile): Promise<JobRating> => {
