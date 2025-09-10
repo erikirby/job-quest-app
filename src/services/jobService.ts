@@ -42,32 +42,23 @@ async function callApi<T>(action: string, payload: any): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-    throw new Error(errorData.error || `API request failed with status ${response.status}`);
+    // Use the `details` field from our improved proxy for a better error message
+    throw new Error(errorData.details || errorData.error || `API request failed with status ${response.status}`);
   }
 
   return response.json();
 }
 
-const parseAndCleanResponse = <T,>(response: any): T => {
-    // The response from the proxy is the full SDK response object.
-    // Check for safety blocks first.
-    const blockReason = response?.promptFeedback?.blockReason;
-    if (blockReason) {
-        console.error("Gemini request was blocked:", response.promptFeedback);
-        throw new Error(`Request blocked for safety reasons: ${blockReason}. Please adjust your input.`);
-    }
-
-    const text = response?.text;
-    if (typeof text !== 'string' || text.trim() === '') {
-        console.error("Invalid or empty text response from Gemini:", response);
+const parseAndCleanResponse = <T,>(response: GenerateContentResponse): T => {
+    if (typeof response.text !== 'string' || response.text.trim() === '') {
+        console.error("Invalid or empty text response from the API proxy:", response);
         throw new Error("The AI returned an empty or invalid response. Please try again.");
     }
-
     try {
-        const jsonStr = text.trim().replace(/^```json\s*|```$/g, '');
+        const jsonStr = response.text.trim().replace(/^```json\s*|```$/g, '');
         return JSON.parse(jsonStr);
     } catch (error) {
-        console.error("Error parsing Gemini JSON response:", error, { text });
+        console.error("Error parsing Gemini JSON from proxy:", error, { text: response.text });
         throw new Error("Could not understand the AI's response.");
     }
 };
@@ -103,9 +94,9 @@ export const jobService = {
       prompt,
       config: { numberOfImages: 1, outputMimeType: 'image/jpeg', aspectRatio: '4:3' },
     };
-    const response = await callApi<{ generatedImages: { image: { imageBytes: string } }[] }>('generateJobImage', payload);
+    const response = await callApi<{ generatedImages: { imageBytes: string }[] }>('generateJobImage', payload);
     if (response.generatedImages && response.generatedImages.length > 0) {
-      return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+      return `data:image/jpeg;base64,${response.generatedImages[0].imageBytes}`;
     }
     throw new Error("No image was generated.");
   },

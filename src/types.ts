@@ -98,7 +98,7 @@ export interface ToastMessage {
   type: 'success' | 'info' | 'warning';
 }
 
-// Type for the raw response from the Gemini API proxy
+// Type for the simplified response from our API proxy
 export interface GenerateContentResponse {
     text: string;
 }
