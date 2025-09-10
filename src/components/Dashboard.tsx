@@ -1,25 +1,73 @@
+
 import React, { useMemo } from 'react';
-import type { GameState, Application, FollowUp } from '../types';
-import { XP_VALUES, SUBMISSIONS_PER_LEVEL, ICONS } from '../constants';
+import type { GameState, Application, FollowUp, Tab } from '../types';
+import { Tab as TabEnum } from '../types';
+import { XP_VALUES, SUBMISSIONS_PER_LEVEL, ICONS, BADGES } from '../constants';
 import { isSameDay, isAfter, format, addDays } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Card from './ui/Card';
 import Button from './ui/Button';
-import ProgressBar from './ui/ProgressBar';
 
 interface DashboardProps {
   gameState: GameState;
   onDailyCheckIn: () => void;
   onUpdateApplication: (appId: string, updatedApp: Application) => void;
+  setActiveTab: (tab: Tab) => void;
 }
 
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
-    <Card className="flex flex-col items-center justify-center text-center !p-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 text-white ${color}`}>{icon}</div>
-        <p className="text-3xl font-bold text-slate-800">{value}</p>
-        <p className="text-sm text-slate-500 font-semibold">{title}</p>
-    </Card>
+const CircularProgressBar: React.FC<{ progress: number; level: number; questsDone: number; questsNeeded: number; }> = ({ progress, level, questsDone, questsNeeded }) => {
+    const radius = 55;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (progress / 100) * circumference;
+
+    return (
+        <div className="relative flex flex-col items-center">
+            <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
+                <circle cx="70" cy="70" r={radius} strokeWidth="12" className="stroke-gray-300/40" fill="transparent" />
+                <circle
+                    cx="70"
+                    cy="70"
+                    r={radius}
+                    strokeWidth="12"
+                    stroke="url(#progressGradient)"
+                    fill="transparent"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    className="transition-all duration-700 ease-out"
+                />
+                <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#67e8f9" />
+                        <stop offset="100%" stopColor="#0ea5e9" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                 <span className="text-sm font-semibold text-slate-500 -mt-1">
+                    LV.
+                </span>
+                <span className="text-4xl font-bold text-slate-800 leading-none">
+                    {level}
+                </span>
+            </div>
+             <p className="text-sm text-slate-600 font-semibold mt-2">{questsDone} / {questsNeeded} Quests</p>
+        </div>
+    );
+};
+
+const DashboardActionCard: React.FC<{ icon: React.ReactNode; title: string; subtitle: string; onClick?: () => void; color: string; }> = ({ icon, title, subtitle, onClick, color }) => (
+    <div onClick={onClick} className={`p-4 rounded-2xl shadow-lg transition-transform hover:scale-105 active:scale-100 ${onClick ? 'cursor-pointer' : ''} ${color}`}>
+        <div className="flex items-start justify-between">
+            <div>
+                <p className="font-bold text-white text-lg">{title}</p>
+                <p className="text-sm text-white/80">{subtitle}</p>
+            </div>
+            <div className="text-4xl text-white/50">{icon}</div>
+        </div>
+    </div>
 );
+
 
 const FollowUpItem: React.FC<{ followUp: FollowUp; application: Application; onUpdateApplication: (appId: string, updatedApp: Application) => void; }> = ({ followUp, application, onUpdateApplication }) => {
     
@@ -55,7 +103,7 @@ const FollowUpItem: React.FC<{ followUp: FollowUp; application: Application; onU
     );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ gameState, onDailyCheckIn, onUpdateApplication }) => {
+const Dashboard: React.FC<DashboardProps> = ({ gameState, onDailyCheckIn, onUpdateApplication, setActiveTab }) => {
   const { xp, level, streak, bestStreak, lastCheckIn, applications, unlockedBadges } = gameState;
 
   const hasCheckedInToday = lastCheckIn ? isSameDay(new Date(lastCheckIn), new Date()) : false;
@@ -74,26 +122,48 @@ const Dashboard: React.FC<DashboardProps> = ({ gameState, onDailyCheckIn, onUpda
 
   return (
     <div className="space-y-6">
+        <div className="flex justify-center">
+            <CircularProgressBar 
+                progress={xpPercentage}
+                level={level}
+                questsDone={submissionsForCurrentLevel}
+                questsNeeded={SUBMISSIONS_PER_LEVEL}
+            />
+        </div>
+
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-slate-800">Welcome back, Adventurer!</h1>
-        <p className="mt-2 text-slate-600">Ready to conquer the job market?</p>
-        <Button onClick={onDailyCheckIn} disabled={hasCheckedInToday} className="mt-4 !px-8 !py-3">
+        <Button onClick={onDailyCheckIn} disabled={hasCheckedInToday} className="!px-8 !py-3">
           {hasCheckedInToday ? "Checked In!" : `Daily Check-in (+${XP_VALUES.DAILY_CHECKIN} XP)`}
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Current Level" value={level} icon={<span className="text-2xl">⚔️</span>} color="bg-blue-400" />
-        <StatCard title="Total XP" value={xp} icon={<span className="text-2xl">✨</span>} color="bg-purple-400" />
-        <StatCard title="Current Streak" value={streak} icon={<span className="text-2xl">🔥</span>} color="bg-orange-400" />
-        <StatCard title="Best Streak" value={bestStreak} icon={<span className="text-2xl">🏆</span>} color="bg-yellow-400" />
-      </div>
-
-      <Card>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Level Progress</h2>
-        <p className="text-sm text-slate-500 mb-4">{`You've submitted ${submissionsForCurrentLevel} of ${SUBMISSIONS_PER_LEVEL} quests for the next level.`}</p>
-        <ProgressBar value={xpPercentage} />
-      </Card>
+      <div className="grid grid-cols-2 gap-4">
+        <DashboardActionCard 
+            icon="🔥" 
+            title="Streak" 
+            subtitle={`${streak} Days`} 
+            color="bg-gradient-to-br from-orange-400 to-red-500" 
+        />
+        <DashboardActionCard 
+            icon={ICONS.BADGES}
+            title="Badges" 
+            subtitle={`${unlockedBadges.length} / ${BADGES.length} Unlocked`}
+            color="bg-gradient-to-br from-amber-400 to-yellow-500"
+            onClick={() => setActiveTab(TabEnum.BadgeGallery)}
+        />
+        <DashboardActionCard 
+            icon="📄" 
+            title="Total Quests" 
+            subtitle={`${totalSubmissions} Submitted`} 
+            color="bg-gradient-to-br from-lime-400 to-green-500"
+        />
+        <DashboardActionCard 
+            icon="🏅" 
+            title="Best Streak" 
+            subtitle={`${bestStreak} Days`} 
+            color="bg-gradient-to-br from-cyan-400 to-sky-500"
+        />
+    </div>
       
       {pendingFollowUps.length > 0 && (
         <Card>
@@ -106,32 +176,22 @@ const Dashboard: React.FC<DashboardProps> = ({ gameState, onDailyCheckIn, onUpda
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Application Status</h2>
-              <div className="space-y-2">
-                  {Object.entries(
-                      Object.values(applications).reduce((acc, curr) => {
-                          acc[curr.status] = (acc[curr.status] || 0) + 1;
-                          return acc;
-                      }, {} as Record<string, number>)
-                  ).map(([status, count]) => (
-                      <div key={status} className="flex justify-between items-center text-slate-600">
-                          <span>{status}</span>
-                          <span className="font-bold bg-white/50 text-slate-800 text-xs px-2 py-1 rounded-full">{count}</span>
-                      </div>
-                  ))}
-              </div>
-          </Card>
-          <Card>
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Badges Unlocked</h2>
-              <div className="flex flex-wrap gap-4">
-                  {unlockedBadges.length > 0 ? unlockedBadges.map(badgeId => (
-                      <div key={badgeId} className="text-5xl" title={badgeId}>{ICONS.BADGES}</div> // Replace with actual badge icons
-                  )) : <p className="text-slate-500">No badges unlocked yet. Keep questing!</p>}
-              </div>
-          </Card>
-      </div>
+      <Card>
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Application Status</h2>
+          <div className="space-y-2">
+              {Object.entries(
+                  Object.values(applications).reduce((acc, curr) => {
+                      acc[curr.status] = (acc[curr.status] || 0) + 1;
+                      return acc;
+                  }, {} as Record<string, number>)
+              ).map(([status, count]) => (
+                  <div key={status} className="flex justify-between items-center text-slate-600">
+                      <span>{status}</span>
+                      <span className="font-bold bg-white/50 text-slate-800 text-xs px-2 py-1 rounded-full">{count}</span>
+                  </div>
+              ))}
+          </div>
+      </Card>
     </div>
   );
 };

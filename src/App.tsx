@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Tab, GameState, Job, Profile, Application, ApplicationStatus, ToastMessage } from './types';
 import { Tab as TabEnum } from './types';
@@ -15,7 +16,7 @@ import { ToastContainer } from './components/ui/Toast';
 import { ConfettiEffect, SparkleEffect } from './components/ui/Effects';
 
 const App: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<Tab>(TabEnum.QuestBoard);
+    const [activeTab, setActiveTab] = useState<Tab>(TabEnum.Dashboard);
     const [profiles, setProfiles] = useLocalStorage<Profile[]>('jobquest_profiles', INITIAL_PROFILES);
     const [activeProfileId, setActiveProfileId] = useLocalStorage<string>('jobquest_activeProfileId', 'erik');
     
@@ -27,12 +28,12 @@ const App: React.FC = () => {
     const [showConfetti, setShowConfetti] = useState(false);
     const [showSparkles, setShowSparkles] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [currentDate, setCurrentDate] = useState(format(new Date(), 'MMMM d, yyyy'));
+    const [currentDate, setCurrentDate] = useState(format(new Date(), 'M/d/yyyy'));
 
     // Update date display once a day
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentDate(format(new Date(), 'MMMM d, yyyy'));
+            setCurrentDate(format(new Date(), 'M/d/yyyy'));
         }, 60000); // Check every minute
         return () => clearInterval(interval);
     }, []);
@@ -229,7 +230,7 @@ const App: React.FC = () => {
 
     const tabContent = () => {
         switch(activeTab) {
-            case TabEnum.Dashboard: return <Dashboard gameState={gameState} onDailyCheckIn={handleDailyCheckIn} onUpdateApplication={handleUpdateApplication} />;
+            case TabEnum.Dashboard: return <Dashboard gameState={gameState} onDailyCheckIn={handleDailyCheckIn} onUpdateApplication={handleUpdateApplication} setActiveTab={setActiveTab} />;
             case TabEnum.QuestBoard: return <QuestBoard profile={activeProfile} onAddJob={handleAddJob} isLoading={isLoading} setIsLoading={setIsLoading} />;
             case TabEnum.QuestLog: return <QuestLog userJobs={userJobs} gameState={gameState} onUpdateApplication={handleUpdateApplication} onDeleteSavedJob={handleDeleteSavedJob} onApplyToJob={(jobId) => handleJobSubmit(userJobs[jobId])} />;
             case TabEnum.DailyMissions: return <DailyMissions gameState={gameState} onCompleteMission={handleCompleteMission} />;
@@ -263,26 +264,16 @@ const App: React.FC = () => {
             {showSparkles && <SparkleEffect />}
             <ToastContainer messages={toasts} onDismiss={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
-            <header className="bg-white/30 backdrop-blur-md sticky top-0 z-10 border-b border-white/30">
+            <header className="sticky top-0 z-10">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center">
                             <span className="font-bold text-2xl text-slate-800">Job Quest</span>
-                             <div className="ml-4 bg-white/50 rounded-full p-1 border border-white/30 hidden sm:block">
-                                <div className="flex items-center">
-                                    <span className="w-8 h-8 rounded-full bg-blue-400 text-white flex items-center justify-center font-bold">{activeProfile.name.charAt(0)}</span>
-                                    <span className="ml-2 mr-3 font-semibold text-slate-700">{activeProfile.name}</span>
-                                </div>
-                            </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <div className="text-right hidden sm:block">
+                             <div className="text-right">
                                 <p className="font-semibold text-sm text-slate-700">{currentDate}</p>
                             </div>
-                             <div className="text-right bg-white/50 p-2 rounded-lg border border-white/30">
-                                <p className="font-bold text-slate-700">Lv. {gameState.level}</p>
-                                <p className="text-xs text-slate-500 font-semibold">{gameState.xp} XP</p>
-                             </div>
                         </div>
                     </div>
                 </div>
@@ -292,16 +283,21 @@ const App: React.FC = () => {
                 {tabContent()}
             </main>
 
-            <footer className="fixed bottom-0 left-0 right-0 bg-white/60 backdrop-blur-xl z-20 border-t border-white/30">
-                <div className="grid grid-cols-6 max-w-2xl mx-auto">
-                     {Object.values(TabEnum).map(tab => (
+            <footer className="fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-xl z-20 border-t border-gray-200/80 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
+                <div className="grid grid-cols-5 max-w-xl mx-auto">
+                     {Object.values(TabEnum)
+                        .filter(tab => tab !== TabEnum.BadgeGallery)
+                        .map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex flex-col items-center justify-center w-full pt-2 pb-1 text-xs transition-all duration-200 transform focus:outline-none
-                                ${activeTab === tab ? 'text-blue-500 scale-110' : 'text-slate-500 hover:text-blue-400'}`}
+                            className={`flex flex-col items-center justify-center w-full pt-3 pb-2 text-xs transition-colors duration-200 focus:outline-none ${
+                                activeTab === tab ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
+                            }`}
+                            aria-label={tab}
+                            aria-current={activeTab === tab}
                         >
-                            <div className={`p-2 rounded-full transition-colors ${activeTab === tab ? 'bg-blue-100' : 'bg-transparent'}`}>
+                            <div className={`p-0 rounded-full transition-shadow ${activeTab === tab ? 'shadow-lg shadow-blue-500/30' : ''}`}>
                                 {React.cloneElement(TAB_ICONS[tab], {className: 'h-6 w-6'})}
                             </div>
                             <span className="mt-1 font-semibold">{tab}</span>
