@@ -120,7 +120,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
             
             const cardData = await jobService.parseJobFromText(importText);
             
-            // Assign a random preloaded image
+            // Assign a random preloaded image - NO AI GENERATION
             cardData.imageUrl = PRELOADED_IMAGES[Math.floor(Math.random() * PRELOADED_IMAGES.length)];
 
             cardData.rarity = calculateRarity(cardData, profile.preferences);

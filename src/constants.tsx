@@ -20,7 +20,7 @@ export const ICONS = {
 };
 
 // --- PRELOADED IMAGES ---
-// The user should replace these with their own images in the /public/assets folder
+// The user has provided their own images in the /public/assets folder
 export const PRELOADED_IMAGES = [
   '/assets/b1.jpg',
   '/assets/b2.jpg',
