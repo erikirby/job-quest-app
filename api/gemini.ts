@@ -92,6 +92,26 @@ export default async function handler(
         });
       }
 
+      case 'generateRandomImage': {
+          const prompt = `A vibrant, high-quality illustration of a mythical creature in a dynamic pose, cel-shaded, simple but complete background, fantasy art style. CRITICAL: NO TEXT, NO BORDERS, NO UI.`;
+          
+          const result = await ai.models.generateContent({
+              model: 'gemini-2.5-flash-image-preview',
+              contents: [{ parts: [{ text: prompt }] }],
+              config: {
+                  responseModalities: [Modality.IMAGE],
+              },
+          });
+          
+          const imagePart = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+          if (!imagePart?.inlineData?.data) {
+              console.error("Random image response missing data:", JSON.stringify(result, null, 2));
+              return response.status(500).json({ error: 'Could not generate random image.' });
+          }
+          
+          return response.status(200).json({ imageBytes: imagePart.inlineData.data });
+      }
+
       default:
         return response.status(400).json({ error: 'Invalid action' });
     }

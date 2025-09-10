@@ -106,6 +106,10 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
     const [previewJob, setPreviewJob] = useState<Partial<Job> | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState('Creating Card...');
+
+    // State for the isolated API test
+    const [testImage, setTestImage] = useState<string | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
     
     const handleCreateCard = async () => {
         setError(null);
@@ -152,6 +156,20 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
         }
     };
 
+    const handleRandomImageTest = async () => {
+        setError(null);
+        setTestImage(null);
+        setIsTesting(true);
+        try {
+            const imageUrl = await jobService.generateRandomImage();
+            setTestImage(imageUrl);
+        } catch (err: any) {
+            setError(err.message || 'The random image test failed.');
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
     const handleAdd = (action: 'save' | 'submit') => {
         if (!previewJob) return;
         onAddJob(previewJob, action);
@@ -195,7 +213,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
                             disabled={isLoading}
                         />
                         <div className="mt-4 flex flex-col items-center justify-center">
-                            <Button onClick={handleCreateCard} disabled={isLoading || importText.trim().length === 0} className="w-full sm:w-auto">
+                            <Button onClick={handleCreateCard} disabled={isLoading || isTesting || importText.trim().length === 0} className="w-full sm:w-auto">
                                 {isLoading ? loadingMessage : 'Create Card from Text'}
                             </Button>
                         </div>
@@ -212,7 +230,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
                             disabled={isLoading}
                         />
                         <div className="mt-4 text-center">
-                            <Button variant="secondary" onClick={handleRatingCheck} disabled={isLoading || ratingText.trim().length === 0}>
+                            <Button variant="secondary" onClick={handleRatingCheck} disabled={isLoading || isTesting || ratingText.trim().length === 0}>
                                 {isLoading ? loadingMessage : 'Check Fit'}
                             </Button>
                         </div>
@@ -246,6 +264,28 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
                     onSubmit={() => handleAdd('submit')}
                     isLoading={isLoading} 
                 />}
+            </Card>
+
+            <Card>
+                <h2 className="text-xl font-bold text-center text-slate-800 mb-2">API Test</h2>
+                <p className="text-center text-slate-600 mb-4">This button makes a single, isolated call to the image generation API.</p>
+                <div className="text-center">
+                    <Button onClick={handleRandomImageTest} disabled={isLoading || isTesting}>
+                        {isTesting ? 'Generating...' : 'Generate Random Image'}
+                    </Button>
+                </div>
+
+                {isTesting && (
+                     <div className="text-center p-8">
+                      <div className="w-8 h-8 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    </div>
+                )}
+                
+                {testImage && (
+                    <div className="mt-4 flex justify-center">
+                        <img src={testImage} alt="API Test Result" className="rounded-lg shadow-lg border-4 border-white/50 max-w-xs w-full" />
+                    </div>
+                )}
             </Card>
         </div>
     );

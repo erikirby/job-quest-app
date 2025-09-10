@@ -43,6 +43,14 @@ export const jobService = {
       return { ...jobDetails, imageUrl, source: 'Manual Text' };
   },
 
+  generateRandomImage: async (): Promise<string> => {
+    const response = await callApi<{ imageBytes: string }>('generateRandomImage', {});
+    if (!response.imageBytes) {
+        throw new Error("The AI response for the random image was empty.");
+    }
+    return `data:image/png;base64,${response.imageBytes}`;
+  },
+
   rateJobFit: async (jobDescription: string, profile: Profile): Promise<JobRating> => {
     const ratingSchema = {
         type: "OBJECT",
