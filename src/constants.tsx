@@ -22,16 +22,16 @@ export const ICONS = {
 // --- PRELOADED IMAGES ---
 // The user should replace these with their own images in the /public/assets folder
 export const PRELOADED_IMAGES = [
-  '/assets/fantasy_1.png',
-  '/assets/fantasy_2.png',
-  '/assets/fantasy_3.png',
-  '/assets/fantasy_4.png',
-  '/assets/fantasy_5.png',
-  '/assets/fantasy_6.png',
-  '/assets/fantasy_7.png',
-  '/assets/fantasy_8.png',
-  '/assets/fantasy_9.png',
-  '/assets/fantasy_10.png',
+  '/assets/b1.jpg',
+  '/assets/b2.jpg',
+  '/assets/b3.jpg',
+  '/assets/b4.jpg',
+  '/assets/b5.jpg',
+  '/assets/b6.jpg',
+  '/assets/b7.jpg',
+  '/assets/b8.jpg',
+  '/assets/b9.jpg',
+  '/assets/b10.jpg',
 ];
 
 // --- POKEMON TCG CARD "TYPES" ---
