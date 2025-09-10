@@ -62,7 +62,7 @@ const QuestPreviewCard: React.FC<{
                         {job.imageUrl && (
                             <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
                         )}
-                        {(isRegeneratingImage || !job.imageUrl) && (
+                        {(isRegeneratingImage) && (
                             <div className="absolute inset-0 bg-slate-100/80 flex items-center justify-center rounded-sm">
                                 <div className="w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                             </div>
@@ -73,7 +73,7 @@ const QuestPreviewCard: React.FC<{
                             className="absolute top-2 right-2 p-1.5 bg-white/50 rounded-full text-slate-600 hover:bg-white/80 hover:scale-110 transition-transform duration-200 disabled:opacity-50"
                             aria-label="Regenerate Artwork"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4 4l16 16" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5m15-11l-6 6M4 4l6 6" /></svg>
                         </button>
                     </div>
                     
