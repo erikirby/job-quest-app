@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Job } from '../types';
+import type { Job, Profile, JobRating } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -27,7 +27,16 @@ const jobSchema = {
   required: ['title', 'company', 'location', 'description', 'remote', 'tags', 'url'],
 };
 
-const parseAndCleanResponse = (responseText: string): Partial<Job> => {
+const ratingSchema = {
+  type: Type.OBJECT,
+  properties: {
+    rating: { type: Type.INTEGER, description: "A star rating from 1 (poor fit) to 5 (perfect fit)." },
+    reasoning: { type: Type.STRING, description: "A concise, 2-4 sentence explanation for the rating, using emojis to make it engaging." }
+  },
+  required: ['rating', 'reasoning']
+};
+
+const parseAndCleanResponse = <T,>(responseText: string): T => {
   try {
     const jsonStr = responseText.trim();
     // Gemini can sometimes return markdown ```json ... ```, so we strip it.
@@ -36,7 +45,7 @@ const parseAndCleanResponse = (responseText: string): Partial<Job> => {
     return parsed;
   } catch (error) {
     console.error("Error parsing Gemini JSON response:", error);
-    throw new Error("Could not understand the job details. Please try a clearer screenshot or paste more text.");
+    throw new Error("Could not understand the AI's response. It might be in an unexpected format.");
   }
 };
 
@@ -64,7 +73,7 @@ export const jobService = {
         },
       });
 
-      return parseAndCleanResponse(response.text);
+      return parseAndCleanResponse<Partial<Job>>(response.text);
     } catch (error) {
       console.error("Failed to parse job from text:", error);
       throw error;
@@ -96,7 +105,7 @@ export const jobService = {
         },
       });
 
-      return parseAndCleanResponse(response.text);
+      return parseAndCleanResponse<Partial<Job>>(response.text);
     } catch (error) {
       console.error("Failed to parse job from image:", error);
       throw error;
@@ -106,33 +115,27 @@ export const jobService = {
   generateJobImage: async (job: Partial<Job>): Promise<string> => {
     console.log("Generating image for job:", job.title);
     
-    const jobText = `${job.title || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
-    let themeInstructions = "Use a neutral, balanced color palette with earthy tones.";
-    if (jobText.includes('localization') || jobText.includes('japanese')) {
-        themeInstructions = "The color scheme should be mystical and intelligent, using psychic purples, deep indigos, and glowing pinks. The background should have subtle patterns of ancient runes or swirling psychic energy.";
-    } else if (jobText.includes('design') || jobText.includes('creative') || jobText.includes('artist')) {
-        themeInstructions = "The color scheme should be fiery and passionate, using vibrant oranges, reds, and bright yellows. The background should have subtle patterns of swirling flames or energetic brush strokes.";
-    } else if (jobText.includes('engineer') || jobText.includes('developer') || jobText.includes('tech') || jobText.includes('data')) {
-        themeInstructions = "The color scheme should be electric and modern, using sharp yellows, cool blues, and metallic grays. The background should have subtle patterns of circuit board lines or digital data streams.";
-    }
-
     const prompt = `
-      Generate a single, vertically-oriented, high-quality ILLUSTRATION ONLY for a collectible job quest card.
-      The illustration will be placed inside a card frame later, so it must be full-bleed artwork with NO BORDERS, NO TEXT, and NO UI elements.
-
-      **Artwork Subject:**
-      Create a dynamic and detailed illustration that metaphorically captures the essence of the job: "${job.title}".
-      The role involves: ${job.description}.
-      This could be a fantasy creature, a stylized character, or a symbolic scene. For example, a "Software Engineer" could be a glowing golem forged from data streams; a "Community Manager" could be a charismatic merchant in a bustling fantasy marketplace.
+      **Objective:** Create a single, high-quality piece of artwork for a collectible "Job Quest" card. The art should be iconic, clean, and visually appealing, suitable for a modern TCG.
 
       **Art Style:**
-      - **Style:** Modern Japanese trading card game (TCG) art. Vibrant, clean, and slightly anime-influenced.
-      - **Composition:** Dynamic pose or scene. High level of detail. Professional finish.
-      
-      **Theming:**
-      - **Color & Mood:** ${themeInstructions}
+      - **Inspiration:** Heavily inspired by the iconic, clean, and character-focused style of early Pokémon TCG artists like Ken Sugimori.
+      - **Technique:** Cel-shaded, with clean lines and simple, effective coloring. Avoid overly complex textures, gradients, or photorealistic rendering.
+      - **Focus:** The artwork MUST feature a single, clear, central subject (a character, creature, or symbolic object) that metaphorically represents the job.
 
-      **CRITICAL:** The final output must be the artwork ONLY. Do NOT add any card frames, text, HP values, titles, or any other elements.
+      **Subject Matter:**
+      - **Job Title:** "${job.title}"
+      - **Job Description:** "${job.description}"
+      - **Concept:** Generate a creative, metaphorical character or creature. For example:
+          - "Network Engineer": A futuristic cybernetic courier with glowing data packets flowing along its arms.
+          - "Japanese Tutor": A wise, scholarly kitsune (fox spirit) holding a calligraphy brush.
+          - "UX Designer": A friendly, crystal-like golem carefully arranging floating interface elements.
+      - **Background:** The background should be MINIMALISTIC. Use simple shapes, a soft gradient, or abstract patterns that complement the subject without distracting from it.
+
+      **CRITICAL INSTRUCTIONS:**
+      1.  **NO TEXT:** The image must not contain any words, letters, numbers, or symbols.
+      2.  **NO BORDERS OR FRAMES:** Do not draw a card border, frame, or any UI elements. The output must be the full-bleed artwork only.
+      3.  **SINGLE SUBJECT:** Focus on one compelling character or creature. Avoid overly busy scenes with multiple characters.
     `;
 
     try {
@@ -142,7 +145,7 @@ export const jobService = {
             config: {
               numberOfImages: 1,
               outputMimeType: 'image/jpeg',
-              aspectRatio: '4:3', // landscape for the smaller frame
+              aspectRatio: '4:3',
             },
         });
 
@@ -157,4 +160,41 @@ export const jobService = {
       throw new Error("Could not generate quest artwork.");
     }
   },
+
+  rateJobFit: async (jobDescription: string, profile: Profile): Promise<JobRating> => {
+    console.log("Rating job fit with Gemini...");
+    const prompt = `
+      You are a helpful and encouraging career coach AI. Your task is to analyze a job description and rate how well it fits a user's profile on a 1 to 5 star scale.
+      
+      **User Profile Preferences:**
+      - **Remote Only:** ${profile.preferences.remoteOnly}
+      - **Keywords:** ${profile.preferences.keywords.join(', ')}
+      - **Preferred Roles:** ${profile.preferences.preferredRoles.join(', ')}
+
+      **Job Description to Analyze:**
+      ---
+      ${jobDescription}
+      ---
+
+      **Your Task:**
+      Based on the user's preferences, analyze the job description and return ONLY a single JSON object that strictly adheres to the provided schema. 
+      Your reasoning should be positive and encouraging, even if the fit is low. Use emojis to make it engaging!
+    `;
+
+    try {
+       const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: ratingSchema,
+        },
+      });
+
+      return parseAndCleanResponse<JobRating>(response.text);
+    } catch (error) {
+      console.error("Failed to rate job fit:", error);
+      throw new Error("Could not analyze the job rating. Please try again.");
+    }
+  }
 };

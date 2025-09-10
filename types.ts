@@ -19,6 +19,12 @@ export interface Job {
   source: string; // e.g., 'Manual Text', 'Manual Image'
   rarity: number;
   imageUrl?: string;
+  type?: string; // e.g., 'fire', 'water', 'grass'
+}
+
+export interface JobRating {
+  rating: number;
+  reasoning: string;
 }
 
 export enum ApplicationStatus {

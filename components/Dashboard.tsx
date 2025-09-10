@@ -85,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gameState, onDailyCheckIn, onUpda
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Current Level" value={level} icon={<span className="text-2xl">⚔️</span>} color="bg-blue-400" />
         <StatCard title="Total XP" value={xp} icon={<span className="text-2xl">✨</span>} color="bg-purple-400" />
-        <StatCard title="Current Streak" value={streak} icon={<div className="text-2xl scale-125">{ICONS.FIRE}</div>} color="bg-orange-400" />
+        <StatCard title="Current Streak" value={streak} icon={<span className="text-2xl">🔥</span>} color="bg-orange-400" />
         <StatCard title="Best Streak" value={bestStreak} icon={<span className="text-2xl">🏆</span>} color="bg-yellow-400" />
       </div>
 

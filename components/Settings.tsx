@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import type { Profile } from '../types';
 import Card from './ui/Card';
@@ -79,7 +78,6 @@ const Settings: React.FC<SettingsProps> = ({ profiles, activeProfileId, onProfil
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <p>Import jobs from a CSV file.</p>
-                {/* FIX: The `as` prop is not supported by the Button component. Refactored to use an onClick handler to trigger the file input, a pattern consistent with other components in this app. */}
                 <div>
                     <Button variant="ghost" onClick={() => fileInputRef.current?.click()}>Import CSV</Button>
                     <input type="file" ref={fileInputRef} id="csv-import" accept=".csv" className="hidden" onChange={handleImport} />

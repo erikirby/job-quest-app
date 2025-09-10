@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import type { Job, Profile } from '../types';
+import type { Job, Profile, JobRating } from '../types';
 import { jobService } from '../services/jobService';
 import Card from './ui/Card';
 import Button from './ui/Button';
-import { ICONS, PORTALS, CARD_TYPE_COLORS } from '../constants';
+import { PORTALS, POKEMON_CARD_TYPES, ICONS } from '../constants';
 
 interface QuestBoardProps {
   profile: Profile;
@@ -30,70 +30,63 @@ const calculateRarity = (job: Partial<Job>, preferences: Profile['preferences'])
     return Math.min(5, score);
 };
 
-const getCardType = (job: Partial<Job>): string => {
-    const jobText = `${job.title || ''} ${(job.tags || []).join(' ')}`.toLowerCase();
-    if (jobText.includes('localization') || jobText.includes('japanese')) return 'localization';
-    if (jobText.includes('design') || jobText.includes('creative') || jobText.includes('artist')) return 'creative';
-    if (jobText.includes('engineer') || jobText.includes('developer') || jobText.includes('tech') || jobText.includes('data')) return 'tech';
-    return 'default';
-};
-
 const QuestPreviewCard: React.FC<{ job: Partial<Job>; onSave: () => void; onSubmit: () => void; isLoading: boolean;}> = ({ job, onSave, onSubmit, isLoading }) => {
-    const cardType = getCardType(job);
-    const colors = CARD_TYPE_COLORS[cardType] || CARD_TYPE_COLORS.default;
+    const cardType = job.type || 'colorless';
+    const colors = POKEMON_CARD_TYPES[cardType] || POKEMON_CARD_TYPES.colorless;
 
     return (
         <div className="mt-8 animate-fade-in max-w-sm mx-auto">
-             <div className={`p-4 rounded-xl shadow-lg ${colors.bg} ${colors.border} border-2`}>
-                {/* Header */}
-                <div className="flex justify-between items-center">
-                    <h3 className={`text-lg font-bold ${colors.text}`}>{job.title || 'Untitled Quest'}</h3>
-                    <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-bold ${colors.rarity}`}>HP</span>
-                        <span className={`text-xl font-bold ${colors.rarity}`}>{ (job.rarity || 1) * 30 }</span>
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white ${colors.bg} border-2 ${colors.border}`}>
-                           {colors.typeIcon}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Image Frame */}
-                <div className={`my-3 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
-                    {job.imageUrl ? (
-                        <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
-                    ) : (
-                        <div className="w-full h-auto aspect-[4/3] bg-slate-100 flex items-center justify-center rounded-sm">
-                            <p className="text-slate-400">No Image</p>
-                        </div>
-                    )}
-                </div>
-                
-                {/* Body */}
-                <div className={`${colors.body} p-3 rounded-md border ${colors.border}`}>
-                     <div className="space-y-3">
-                        <div>
-                            <p className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>{job.company || 'Unknown Company'}</p>
-                            <p className="text-sm text-slate-600">{job.location || 'No Location'}</p>
-                        </div>
-                        
-                        <hr className={`${colors.border}`} />
-
-                        <div>
-                             <p className={`text-xs font-bold ${colors.text} mb-1.5`}>Primary Objective</p>
-                             <p className="text-xs text-slate-700 leading-snug">{job.description || 'No description available.'}</p>
-                        </div>
-                        
-                        <hr className={`${colors.border}`} />
-                        
-                        <div>
-                             <p className={`text-xs font-bold ${colors.text} mb-1.5`}>Required Skills</p>
-                             <div className="flex flex-wrap gap-1.5">
-                                {(job.tags || []).map(tag => (
-                                    <span key={tag} className="bg-white/80 border border-slate-300 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">{tag}</span>
-                                ))}
+             <div className={`p-1.5 rounded-xl shadow-lg ${colors.bg} ${colors.border} border-4`}>
+                <div className={`p-2.5 rounded-lg ${colors.body} border-2 ${colors.border}`}>
+                    {/* Header */}
+                    <div className={`flex justify-between items-center px-3 py-1 rounded-t-md ${colors.bg} border-b-4 ${colors.border}`}>
+                        <h3 className={`text-lg font-bold ${colors.text} truncate`}>{job.title || 'Untitled Quest'}</h3>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className={`text-sm font-bold ${colors.rarity}`}>HP</span>
+                            <span className={`text-xl font-bold ${colors.rarity}`}>{ (job.rarity || 1) * 30 }</span>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${colors.bg} border-2 ${colors.border}`}>
+                               {colors.icon}
                             </div>
                         </div>
+                    </div>
 
+                    {/* Image Frame */}
+                    <div className={`my-2 p-1 bg-white/50 rounded-md border-4 ${colors.border} shadow-inner`}>
+                        {job.imageUrl ? (
+                            <img src={job.imageUrl} alt={`Artwork for ${job.title}`} className="w-full h-auto aspect-[4/3] object-cover bg-slate-200 rounded-sm" />
+                        ) : (
+                            <div className="w-full h-auto aspect-[4/3] bg-slate-100 flex items-center justify-center rounded-sm">
+                                <p className="text-slate-400">No Image</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Body */}
+                    <div className={`${colors.body} p-3 rounded-b-md`}>
+                         <div className="space-y-3">
+                            <div>
+                                <p className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>{job.company || 'Unknown Company'}</p>
+                                <p className="text-sm text-slate-600">{job.location || 'No Location'}</p>
+                            </div>
+                            
+                            <hr className={`${colors.border}`} />
+
+                            <div>
+                                 <p className={`text-xs font-bold ${colors.text} mb-1.5`}>Primary Objective</p>
+                                 <p className="text-xs text-slate-700 leading-snug">{job.description || 'No description available.'}</p>
+                            </div>
+                            
+                            <hr className={`${colors.border}`} />
+                            
+                            <div>
+                                 <p className={`text-xs font-bold ${colors.text} mb-1.5`}>Required Skills</p>
+                                 <div className="flex flex-wrap gap-1.5">
+                                    {(job.tags || []).map(tag => (
+                                        <span key={tag} className="bg-white/80 border border-slate-300 text-slate-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">{tag}</span>
+                                    ))}
+                                </div>
+                            </div>
+                         </div>
                      </div>
                  </div>
              </div>
@@ -109,6 +102,8 @@ const QuestPreviewCard: React.FC<{ job: Partial<Job>; onSave: () => void; onSubm
 
 const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, setIsLoading }) => {
     const [importText, setImportText] = useState('');
+    const [ratingText, setRatingText] = useState('');
+    const [ratingResult, setRatingResult] = useState<JobRating | null>(null);
     const [previewJob, setPreviewJob] = useState<Partial<Job> | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState('Importing...');
@@ -121,7 +116,7 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
         
         try {
             setLoadingMessage("Parsing details...");
-            let parsedData;
+            let parsedData: Partial<Job>;
             if (method === 'text' && typeof data === 'string') {
                 if (data.trim().length < 50) {
                     throw new Error("Pasted text is too short. Please paste the full job description.");
@@ -140,6 +135,10 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
             parsedData.imageUrl = imageUrl;
             
             parsedData.rarity = calculateRarity(parsedData, profile.preferences);
+
+            const types = Object.keys(POKEMON_CARD_TYPES);
+            parsedData.type = types[Math.floor(Math.random() * types.length)];
+            
             setPreviewJob(parsedData);
             setImportText('');
 
@@ -150,6 +149,24 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
         }
     };
     
+    const handleRatingCheck = async () => {
+        setError(null);
+        setRatingResult(null);
+        setIsLoading(true);
+        setLoadingMessage("Analyzing fit...");
+        try {
+            if (ratingText.trim().length < 50) {
+                throw new Error("Pasted text is too short. Please paste the full job description for an accurate rating.");
+            }
+            const result = await jobService.rateJobFit(ratingText, profile);
+            setRatingResult(result);
+        } catch (err: any) {
+             setError(err.message || 'Failed to analyze job rating. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -193,47 +210,70 @@ const QuestBoard: React.FC<QuestBoardProps> = ({ profile, onAddJob, isLoading, s
             </Card>
 
             <Card>
-                <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Import a Quest</h2>
-                <p className="text-center text-slate-600 mb-6">Found a job posting? Bring it back here to track it.</p>
+                <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Create Quest Card & Star Rating Check</h2>
+                <p className="text-center text-slate-600 mb-6">Analyze a job's fit, or turn it into a collectible card.</p>
                 
-                <div className="bg-white/30 p-6 rounded-xl shadow-inner border border-white/30">
-                    <h3 className="font-semibold text-lg text-slate-700 mb-2">Paste Job Description</h3>
-                    <textarea
-                        value={importText}
-                        onChange={(e) => setImportText(e.target.value)}
-                        placeholder="Paste the full job description here..."
-                        className="w-full h-32 p-3 border border-white/30 bg-white/50 rounded-lg focus:ring-blue-400 focus:border-blue-400 transition"
-                        disabled={isLoading}
-                    />
-                    <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Button
-                            onClick={() => handleParse('text', importText)}
-                            disabled={isLoading || importText.trim().length === 0}
-                            className="w-full sm:w-auto"
-                        >
-                            {isLoading ? loadingMessage : 'Import from Text'}
-                        </Button>
-                         <span className="text-slate-500 font-semibold">OR</span>
-                         <Button
-                            variant="secondary"
-                            onClick={() => fileInputRef.current?.click()}
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Create Quest Card Section */}
+                    <div className="bg-white/30 p-6 rounded-xl shadow-inner border border-white/30">
+                        <h3 className="font-semibold text-lg text-slate-700 mb-2">Create Quest Card</h3>
+                        <textarea
+                            value={importText}
+                            onChange={(e) => setImportText(e.target.value)}
+                            placeholder="Paste the full job description here..."
+                            className="w-full h-24 p-3 border border-white/30 bg-white/50 rounded-lg focus:ring-blue-400 focus:border-blue-400 transition"
                             disabled={isLoading}
-                            className="w-full sm:w-auto"
-                        >
-                             {isLoading ? loadingMessage : 'Upload Screenshot'}
-                        </Button>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                        />
+                        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <Button onClick={() => handleParse('text', importText)} disabled={isLoading || importText.trim().length === 0} className="w-full sm:w-auto">
+                                {isLoading ? loadingMessage : 'From Text'}
+                            </Button>
+                             <span className="text-slate-500 font-semibold">OR</span>
+                             <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={isLoading} className="w-full sm:w-auto">
+                                 {isLoading ? loadingMessage : 'From Screenshot'}
+                            </Button>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                        </div>
+                    </div>
+
+                    {/* Star Rating Section */}
+                    <div className="bg-white/30 p-6 rounded-xl shadow-inner border border-white/30">
+                        <h3 className="font-semibold text-lg text-slate-700 mb-2">Star Rating Check</h3>
+                         <textarea
+                            value={ratingText}
+                            onChange={(e) => setRatingText(e.target.value)}
+                            placeholder="Paste job description to check its fit..."
+                            className="w-full h-24 p-3 border border-white/30 bg-white/50 rounded-lg focus:ring-purple-400 focus:border-purple-400 transition"
+                            disabled={isLoading}
+                        />
+                        <div className="mt-4 text-center">
+                            <Button variant="secondary" onClick={handleRatingCheck} disabled={isLoading || ratingText.trim().length === 0}>
+                                {isLoading ? loadingMessage : 'Check Fit'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
                 {error && <p className="mt-4 text-center text-red-600 bg-red-100 p-3 rounded-lg">{error}</p>}
                 
-                {isLoading && !previewJob &&
+                {isLoading && !previewJob && !ratingResult &&
                   <div className="text-center p-8">
                       <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                       <p className="font-semibold text-slate-600">{loadingMessage}</p>
                   </div>
                 }
+
+                {ratingResult && (
+                    <div className="mt-6 p-4 bg-white/50 rounded-lg animate-fade-in border border-white/30">
+                        <h3 className="font-bold text-center text-slate-800 text-lg mb-2">Job Fit Analysis</h3>
+                        <div className="flex justify-center items-center mb-2">
+                             {Array.from({ length: 5 }).map((_, i) => (
+                                <span key={i} className={`text-3xl ${i < ratingResult.rating ? 'text-yellow-400' : 'text-slate-300'}`}>{ICONS.STAR}</span>
+                            ))}
+                        </div>
+                        <p className="text-center text-slate-700">{ratingResult.reasoning}</p>
+                    </div>
+                )}
                 
                 {previewJob && <QuestPreviewCard job={previewJob} onSave={() => handleAdd('save')} onSubmit={() => handleAdd('submit')} isLoading={isLoading} />}
             </Card>
