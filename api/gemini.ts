@@ -65,7 +65,7 @@ export default async function handler(
         `;
 
         const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-image-preview', // <-- CRITICAL FIX: Use the correct multi-modal model
             contents: [
                 { parts: [{ text: parsePrompt }, { text: imageGenPrompt }] }
             ],
