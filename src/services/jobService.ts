@@ -1,5 +1,4 @@
 import type { Job, Profile, JobRating, GenerateContentResponse } from '../types';
-import { POKEMON_CARD_TYPES, ICONS, PORTALS } from '../constants';
 
 const jobSchema = {
   type: "OBJECT",
@@ -49,14 +48,26 @@ async function callApi<T>(action: string, payload: any): Promise<T> {
   return response.json();
 }
 
-const parseAndCleanResponse = <T,>(response: GenerateContentResponse): T => {
+const parseAndCleanResponse = <T,>(response: any): T => {
+    // The response from the proxy is the full SDK response object.
+    // Check for safety blocks first.
+    const blockReason = response?.promptFeedback?.blockReason;
+    if (blockReason) {
+        console.error("Gemini request was blocked:", response.promptFeedback);
+        throw new Error(`Request blocked for safety reasons: ${blockReason}. Please adjust your input.`);
+    }
+
+    const text = response?.text;
+    if (typeof text !== 'string' || text.trim() === '') {
+        console.error("Invalid or empty text response from Gemini:", response);
+        throw new Error("The AI returned an empty or invalid response. Please try again.");
+    }
+
     try {
-        const text = response.text;
-        const jsonStr = text.trim();
-        const cleanedJsonStr = jsonStr.replace(/^```json\s*|```$/g, '');
-        return JSON.parse(cleanedJsonStr);
+        const jsonStr = text.trim().replace(/^```json\s*|```$/g, '');
+        return JSON.parse(jsonStr);
     } catch (error) {
-        console.error("Error parsing Gemini JSON response:", error, response);
+        console.error("Error parsing Gemini JSON response:", error, { text });
         throw new Error("Could not understand the AI's response.");
     }
 };
